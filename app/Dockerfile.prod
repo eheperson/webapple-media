@@ -1,0 +1,58 @@
+# pull official base image as builder
+FROM python:3.9.6-slim as builder
+ARG REPO_PATH
+# set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# set the working directory
+RUN mkdir app
+WORKDIR /app
+# copy project
+COPY $REPO_PATH /app
+
+RUN apt-get update
+RUN apt-get install gcc -y
+# Install Postgres
+RUN apt-get install libpq-dev -y
+# install netcat : for the nc command in entrypoin.sh
+RUN apt-get install -y netcat
+
+# lint
+RUN pip install --upgrade pip
+RUN pip install flake8
+# COPY . .
+RUN flake8 --ignore=E501,F401 .
+
+# install dependencies
+COPY ./requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
+
+# -------------------------------------------------------------------------------------------------
+
+# pull official base image
+FROM python:3.9.6-slim
+
+# create directory for the app user
+RUN mkdir /app
+WORKDIR /app
+RUN mkdir /app/staticfiles
+
+# install dependencies
+RUN apt-get update
+RUN apt-get install netcat -y
+RUN apt-get install libpq-dev -y
+#
+COPY --from=builder /app/wheels /wheels
+COPY --from=builder /app/requirements.txt .
+RUN pip install --no-cache /wheels/*
+
+# copy entrypoint.sh
+COPY entrypoint.prod.sh /app/entrypoint.prod.sh
+RUN chmod +x /app/entrypoint.prod.sh
+
+# copy project
+COPY $REPO_PATH /app
+
+# run entrypoint.prod.sh
+ENTRYPOINT ["/app/entrypoint.prod.sh"]

@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  webapple-postgres:
+    container_name: webapple-postgres
+    hostname: webapple-postgres
+    image: postgres:13.0-alpine
+    env_file:
+      - ./app/.env
+    networks:
+      - webapple-main-net
+    expose:
+      - "5432"
+    ports:
+      - "5432:5432"
+    volumes:
+      - "postgresql-data:/var/lib/postgresql/data"
+    command: -p 5432
+
+  webapple-app:
+    container_name: webapple-app
+    hostname: webapple-app
+    build: 
+      context: ./app
+      args:
+        REPO_PATH: ./
+      dockerfile: Dockerfile
+    command : python manage.py runserver 0.0.0.0:8006
+    env_file:
+      - ./app/.env
+    environment:
+      - "MIGRATIONS=1"
+    volumes:
+      - ./app:/app
+    ports:
+      - "0.0.0.0:8006:8006"
+    restart: always
+    depends_on:
+      - webapple-postgres
+    working_dir: /app
+    networks:
+      - webapple-main-net
+
+
+volumes:
+  postgresql-data:
+    driver: local
+
+networks:
+  webapple-main-net:
+    driver: bridge
