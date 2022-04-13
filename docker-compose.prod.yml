@@ -33,6 +33,7 @@ services:
     volumes:
       - ./app:/app
       - static-volume:/app/staticfiles
+      - media-volume:/app/mediafiles
     # ports:
     #   - "0.0.0.0:8006:8006"
     expose:
@@ -60,13 +61,16 @@ services:
       - webapple-main-net
     volumes:
       - static-volume:/app/staticfiles
+      - media-volume:/app/mediafiles
 
 volumes:
   postgresql-data:
     driver: local
   static-volume:
     driver: local
-
+  media-volume:
+    driver: local
+    
 networks:
   webapple-main-net:
     driver: bridge
